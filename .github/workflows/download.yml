@@ -1,0 +1,33 @@
+name: Video Downloader
+
+on:
+  push:
+    branches: [ main ]  # 仅在 main 分支提交时触发
+
+jobs:
+  download:
+    runs-on: ubuntu-latest  # 使用最新版 Ubuntu 环境
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4  # 拉取仓库代码
+        with:
+          fetch-depth: 0  # 获取完整 Git 历史记录
+
+      - name: Install yt-dlp
+        run: |
+          python3 -m pip install --upgrade yt-dlp  # 安装 yt-dlp
+
+      - name: Download videos
+        run: |
+          mkdir -p downloads  # 创建 downloads 目录
+          yt-dlp -a playlist.txt -o downloads/%(title)s.%(ext)s  # 下载视频
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "GitHub Actions"  # 设置 Git 用户名
+          git config --global user.email "actions@github.com"  # 设置 Git 邮箱
+          git pull --rebase origin main  # 拉取最新代码，避免冲突
+          git add downloads/  # 添加下载的文件
+          # 仅当有文件变化时才提交
+          git diff --quiet && git diff --staged --quiet || git commit -m "Add downloaded videos"
+          git push  # 推送更改
